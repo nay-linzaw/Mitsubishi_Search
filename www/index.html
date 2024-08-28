@@ -1,0 +1,967 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src * data: gap: https://ssl.gstatic.com; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <script src="components/loader.js"></script>
+    <script src="lib/onsenui/js/onsenui.min.js"></script>
+    <script src="lib/onsenui/js/angular-onsenui.min.js"></script>
+    <script type="module" src="js/firebase.js"></script>
+    <script src="js/functions.js"></script>
+    <script type="module" src="js/controller.js"></script>
+
+    <link rel="stylesheet" href="components/loader.css">
+    <link rel="stylesheet" href="lib/onsenui/css/onsenui.css">
+    <link rel="stylesheet" href="lib/onsenui/css/onsen-css-components.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="/manifest.json">
+
+    <script>
+    ons.ready(function() {
+        console.log("Onsen UI is ready!");
+        ons.disableDeviceBackButtonHandler();
+    });
+    </script>
+</head>
+
+<body>
+    <ons-navigator id="navigator" var="navi" page="loginpage.html" ng-controller="AppController as app"></ons-navigator>
+
+
+    <!-- ログインページ -->
+    <ons-template id="loginpage.html">
+        <ons-page id="loginpage" ng-init="loginInit()">
+            <div class="menucontent">
+                <ons-row>
+                    <ons-col style="text-align:left;margin:20px">
+                        <img src="images/m-auto-logo.png" height="30px">
+                    </ons-col>
+                    <ons-col style="text-align:right;margin:20px;font-size:0.7em">
+                        version alpha-0.5
+                    </ons-col>
+                </ons-row>
+
+                <div class="maintitle">車両検索システム（Demo)</div>
+
+                <ons-list modifier="inset" style="width:400px;margin: 0 auto;">
+                    <ons-list-header>ログインしてください</ons-list-header>
+                    <ons-list-item modifier="longdivider">
+                        <div style="text-align: center; margin-top: 20px;">
+                            <p>
+                                <ons-input id="username" modifier="underbar" placeholder="Username" float style="width:300px"></ons-input>
+                            </p>
+                            <p>
+                                <ons-input id="password" modifier="underbar" type="password" placeholder="Password" float style="width:300px"></ons-input>
+                            </p>
+                            <p style="margin-top: 20px;">
+                                <ons-button modifier="outline" ng-click="login()">ログイン</ons-button>
+                            </p>
+                        </div>
+                    </ons-list-item>
+                </ons-list>
+            </div>
+        </ons-page>
+    </ons-template>
+
+
+    <ons-template id="search.html">
+        <ons-page id="search" ng-init="searchInit()">
+            <ons-toolbar style="background:#D62427">
+                <div class="left" style="color:white">
+                    <ons-toolbar-button ng-click="openMenu()" modifier="outline"><font color=white><ons-icon icon="fa-chevron-right"> 検索条件</font></ons-toolbar-button>
+                </div>
+                <div class="center" style="color:white">
+                    <ons-toolbar-button ng-click="changeKeepview()" modifier="outline"><font color=white>Keep View　に切り替え</font></ons-toolbar-button>
+                </div>
+                <div class="right" style="color:white">
+                    <ons-toolbar-button ng-click="logOut()" modifier="outline"><font color=white><ons-icon icon="md-run"> ログアウト</font></ons-toolbar-button>
+                </div>
+            </ons-toolbar>
+
+            <div id="carcontent" style="white-space:nowrap;">
+            </div>
+        </ons-page>
+    </ons-template>
+
+    <ons-template id="keep.html">
+        <ons-page id="keep" ng-init="keepInit()">
+            <ons-toolbar style="background:#9acd32">
+                <div class="left" style="color:white">
+                    <ons-toolbar-button ng-click="" modifier="outline"><font color=white><ons-icon icon="fa-file-csv"> CSVファイル出力</font></ons-toolbar-button>
+                </div>
+                <div class="center" style="color:white">
+                    <ons-toolbar-button ng-click="changeSearchview()" modifier="outline"><font color=white>検索結果 View　に切り替え</font></ons-toolbar-button>
+                </div>
+                <div class="right" style="color:white">
+                    <ons-toolbar-button ng-click="navi.resetToPage('loginpage.html')" modifier="outline"><font color=white><ons-icon icon="md-run"> ログアウト</font></ons-toolbar-button>
+                </div>
+            </ons-toolbar>
+
+            <div id="keepcontent" style="white-space:nowrap;">
+            </div>
+        </ons-page>
+    </ons-template>
+
+    <ons-template id="detail.html">
+        <ons-page id="detail" ng-init="detailInit()">
+            <ons-toolbar style="background:#008080">
+                <div class="left" style="color:white">
+                    <ons-toolbar-button ng-click="navi.popPage({animation:'lift'})" modifier="outline"><font color=white><ons-icon icon="fa-file-csv"> 閉じる</font></ons-toolbar-button>
+                </div>
+                <div class="center" style="color:white">
+                    車両詳細情報
+                </div>
+            </ons-toolbar>
+
+            <div class="pagecontent">
+
+                <ons-row>
+                    <ons-col class="detailinfo">
+                        <div class="detailtitle">
+                            {{detail.maker}}　{{detail.name}}　{{detail.grade}}
+                        </div><br>
+
+                        <div class="sectiontitle">基本情報</div>
+                        <hr>
+                        <ons-row>
+                            <ons-col>車両本体価格(税抜)</ons-col>
+                            <ons-col>￥ {{detail.price}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row>
+                            <ons-col>排気量(cc)</ons-col>
+                            <ons-col>{{detail.cc}} cc</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row>
+                            <ons-col>ミッション</ons-col>
+                            <ons-col>{{detail.mission}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row>
+                            <ons-col>WLTCモード燃費(km/L)</ons-col>
+                            <ons-col>{{detail.WLTC}} km/L</ons-col>
+                        </ons-row>
+                        <hr>
+                    </ons-col>
+                    <ons-col class="detailphoto">
+                        <img src="{{detail.photo}}" height="250">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="detailinfo">
+                        <hr>
+                        <ons-row>
+                            <ons-col>全長(mm)</ons-col>
+                            <ons-col>{{detail.length}} mm</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row>
+                            <ons-col>全幅(mm)</ons-col>
+                            <ons-col>{{detail.width}} mm</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row>
+                            <ons-col>全高(mm)</ons-col>
+                            <ons-col>{{detail.height}} mm</ons-col>
+                        </ons-row>
+                        <hr>
+                    </ons-col>
+                    <ons-col class="detailsafety">
+                        <hr>
+                        <ons-row>
+                            <ons-col>室内長(mm)</ons-col>
+                            <ons-col>{{detail.floor_length}} mm</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row>
+                            <ons-col>室内幅(mm)</ons-col>
+                            <ons-col>{{detail.floor_width}} mm</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row>
+                            <ons-col>室内高(mm)</ons-col>
+                            <ons-col>{{detail.floor_height}} mm</ons-col>
+                        </ons-row>
+                        <hr>
+                    </ons-col>
+                </ons-row>
+
+                <br><br>
+                <p class="○" style="display:inline">標準装備：○</p>　　<p class="△" style="display:inline">メーカーOP：△</p>　　<p class="▲" style="display:inline">ディーラーOP：▲</p>　　<p class="×" style="display:inline">非搭載：×</p>
+
+                <ons-row>
+                    <ons-col class="detailinfo">
+                        <div class="sectiontitle">基本装備</div>
+                        <hr>
+                        <ons-row class="{{detail.ERDM}}">
+                            <ons-col>電動格納式ドアミラー</ons-col>
+                            <ons-col>{{detail.ERDM}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.power_window_f}}">
+                            <ons-col>パワーウインドウ（前席）</ons-col>
+                            <ons-col>{{detail.power_window_f}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.power_window_r}}">
+                            <ons-col>パワーウインドウ（後席）</ons-col>
+                            <ons-col>{{detail.power_window_r}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.rear_wiper}}">
+                            <ons-col>リヤワイパー</ons-col>
+                            <ons-col>{{detail.rear_wiper}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.KLE}}">
+                            <ons-col>キーレスエントリー</ons-col>
+                            <ons-col>{{detail.KLE}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.privacy_glass}}">
+                            <ons-col>プライバシーガラス（リヤ）</ons-col>
+                            <ons-col>{{detail.privacy_glass}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.audio}}">
+                            <ons-col>オーディオ</ons-col>
+                            <ons-col>{{detail.audio}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.USB}}">
+                            <ons-col>USBソケット</ons-col>
+                            <ons-col>{{detail.USB}}</ons-col>
+                        </ons-row>
+                        <hr>
+                    </ons-col>
+                    <ons-col class="detailsafety">
+                        <div class="sectiontitle">安全装備</div>
+                        <hr>
+                        <ons-row class="{{detail.AEBS}}">
+                            <ons-col>衝突軽減ブレーキ</ons-col>
+                            <ons-col>{{detail.AEBS}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.PMP_F}}">
+                            <ons-col>誤発進抑制装置(前方)</ons-col>
+                            <ons-col>{{detail.PMP_F}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.PMP_R}}">
+                            <ons-col>誤発進抑制装置(後方)</ons-col>
+                            <ons-col>{{detail.PMP_R}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.AHS}}">
+                            <ons-col>オートハイビーム</ons-col>
+                            <ons-col>{{detail.AHS}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.side_air_bag}}">
+                            <ons-col>サイドエアバック&カーテンエアバック</ons-col>
+                            <ons-col>{{detail.side_air_bag}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.corner_sensor_f}}">
+                            <ons-col>コーナーセンサー（前方）</ons-col>
+                            <ons-col>{{detail.corner_sensor_f}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.corner_sensor_r}}">
+                            <ons-col>コーナーセンサー（後方）</ons-col>
+                            <ons-col>{{detail.corner_sensor_r}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.LDPS}}">
+                            <ons-col>車線逸脱防止</ons-col>
+                            <ons-col>{{detail.LDPS}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.TSR}}">
+                            <ons-col>標識認識</ons-col>
+                            <ons-col>{{detail.TSR}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.ACC}}">
+                            <ons-col>追従機能</ons-col>
+                            <ons-col>{{detail.ACC}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.TMN}}">
+                            <ons-col>先行車発信告知</ons-col>
+                            <ons-col>{{detail.TMN}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.AVM}}">
+                            <ons-col>俯瞰映像（上から見た映像）</ons-col>
+                            <ons-col>{{detail.AVM}}</ons-col>
+                        </ons-row>
+                        <hr>
+                        <ons-row class="{{detail.ACPS}}">
+                            <ons-col>自動駐車機能</ons-col>
+                            <ons-col>{{detail.ACPS}}</ons-col>
+                        </ons-row>
+                        <hr>
+                    </ons-col>
+                </ons-row>
+
+                <br><br>
+                <div class="sectiontitle">その他 オプション情報</div>
+
+<div style="margin:20px; background-color:whitesmoke">
+<hr>
+<ons-row><ons-col width="50%" class="option">	■タイヤ＆ホイール_165/80R14 97/95N LTタイヤ＆5Jスチールホイール(センターキャップ付)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■タイヤ＆ホイール_スペアタイヤ(車両装着タイヤ)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_衝突回避支援システム(スマートアシスト) ・衝突警報機能(対車両、対歩行者[昼夜]) ・衝突回避支援ブレーキ機能(対車両、対歩行者[昼夜]) ・車線逸脱警報機能 ・ブレーキ制御付誤発進抑制機能(前方・後方)〈4A/T車のみ〉 ・先行車発進お知らせ機能 ・オートハイビーム	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_VSC＆TRC	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_ABS(EBD機能付)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_SRSエアバッグ(運転席・助手席)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_コーナーセンサー(リヤ)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_ドライブスタートコントロール〈4A/T車のみ〉	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_ヒルスタートアシストコントロール〈4A/T車のみ〉	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_緊急ブレーキシグナル	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_ELR付3点式シートベルト(運転席・助手席)[プリテンショナー＆フォースリミッター機構付]	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_リヤシートベルト(左右席ELR付3点式・中央席2点式)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_LEDハイマウントストップランプ	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_●シートベルト非着用警告灯 (運転席・助手席) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_●サイドドアビーム(フロントのみ) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■安全性_●フューエル残量ウォーニング	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■外装_バンパー	</ons-col><ons-col width="50%" class="option">	標準装備 カラード	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■外装_マッドガード(フロント)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■外装_●ピラーアンテナ	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_LEDヘッドランプ[ハイ・ロービーム](マニュアルレベリング機能付)＋LEDクリアランスランプ	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_コンライト(ライト自動点灯・消灯システム)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_リヤコンビネーションランプ(LEDテールランプ&ストップランプ)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_LEDリヤフォグランプ(右側のみ)※1	</ons-col><ons-col width="50%" class="option">	メーカーオプション ※2	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_ドアミラー	</ons-col><ons-col width="50%" class="option">	標準装備 サイドターンランプ付カラード	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_ドアミラー	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_補助ミラー	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_補助ミラー	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_リヤサイド・リヤクォーター・バックドアガラス	</ons-col><ons-col width="50%" class="option">	標準装備 プライバシー	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_車速感応式フロント間欠ワイパー	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_リヤワイパー(リバース連動・間欠式)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_●インナーミラー 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_●ウインドシールドガラス(グリーン合わせ) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_●フロントサイドガラス(強化グリーン) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_●リヤデフォッガー 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■視界_●リフレックスリフレクター(リヤコンビネーションランプ一体型)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_車速感応型電動パワーステアリング	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_マルチインフォメーションディスプレイ ・燃料計・シフトポジション表示〈AT車〉・時計表示・衝突回避支援システムインジケータ表示 ・ODOメーター/トリップメーターA・B表示・アイドリングストップ時間/積算時間表示	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_パワードアロック	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_ワイヤレスドアロックリモートコントロール(キー一体型)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_パワーウインドゥ(運転席・助手席/運転席のみワンタッチ式・挟み込み防止機能付)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_両側スライドドア昇降式ウインドゥ(手動)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_●4本スポークステアリング ホイール(ウレタン) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_●デジタル時計(メータ―内蔵) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_●キー抜き忘れ防止ブザー 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_●半ドアウォーニング 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■計器盤・操作性_●バックドアロアハンドル	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■シート_セミファブリックシート表皮	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■シート_分離式フロントヘッドレスト	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■シート_リクライニング＆スライドシート(運転席・助手席)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■シート_●フロントシート(セパレートタイプ) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■シート_●折りたたみ式リヤシート (ベンチタイプ)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_助手席オープントレイ	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_グローブボックス	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_センターコンソールトレイ	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_カップホルダー(運転席・助手席・センターコンソール/各1個)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_アクセサリーソケット(DC12V・120W)※3	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_引き出し式小物入れ	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_乗降用アシストグリップ(運転席・助手席)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_ドアグリップ(運転席・助手席)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_ドアトリム(フロントドア・スライドドア)	</ons-col><ons-col width="50%" class="option">	標準装備 平ボード＋セミファブリック	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_リヤデッキトリム	</ons-col><ons-col width="50%" class="option">	標準装備 平ボード＋塩ビ	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_バックドアストラップ	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_ルームセパレーターバー(脱着式)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_ルームセパレーターカーテン	</ons-col><ons-col width="50%" class="option">	販売店装着オプション	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_サンバイザー(運転席チケットホルダー付・助手席)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_オーディオレス＋2スピーカー	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_トヨタ純正ナビ・オーディオ ※4	</ons-col><ons-col width="50%" class="option">	販売店装着オプション	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_●フロア張り(塩ビ) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_●ドアスカッフプレート(フロント・リヤ) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_●ルームランプ 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_●ラゲージルームランプ 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■内装・荷室_●アシストグリップ(助手席)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_マニュアルエアコン	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_リヤヒーター	</ons-col><ons-col width="50%" class="option">	メーカーオプション ※2	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_盗難防止システム(イモビライザーシステム)[国土交通省認可品]	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_アイドリングストップ機能(Stop&Start System)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_寒冷地仕様 ※5	</ons-col><ons-col width="50%" class="option">	メーカーオプション 39,600円 ※2 (消費税抜き36,000円)	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_●クリーンエアフィルター 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_●ヒーターコントロールパネル (3連ダイヤル) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_●フューエルリッドオープナー 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_●工具(ジャッキ、ジャッキハンドル、 ハブナットレンチ) 	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■空調・その他_●牽引フック(フロント1・リヤ1)	</ons-col><ons-col width="50%" class="option">	標準装備	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_ドア数	</ons-col><ons-col width="50%" class="option">	5	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_乗車定員 名	</ons-col><ons-col width="50%" class="option">	2[5]	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_最大積載量 kg	</ons-col><ons-col width="50%" class="option">	750[500]	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_車両型式 	</ons-col><ons-col width="50%" class="option">	5BF-S403M-ZMDFJD ● 	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_車両型式 	</ons-col><ons-col width="50%" class="option">	5BF-S403M-ZQDFJD ●	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_車両重量 	</ons-col><ons-col width="50%" class="option">	1270	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_車両重量	</ons-col><ons-col width="50%" class="option">	1280	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_車両総重量 	</ons-col><ons-col width="50%" class="option">	2,130[2,045]	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_車両総重量 	</ons-col><ons-col width="50%" class="option">	2,140[2,055]	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_最小回転半径 m	</ons-col><ons-col width="50%" class="option">	4.9	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_燃料消費率(国土交通省審査値)WLTCモード	</ons-col><ons-col width="50%" class="option">	〈12.0〉(12.6) 	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_燃料消費率(国土交通省審査値)WLTCモード	</ons-col><ons-col width="50%" class="option">	〈 9.9 〉(10.4)	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_燃料消費率(国土交通省審査値)WLTCモード	</ons-col><ons-col width="50%" class="option">	〈12.2〉(13.2)	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_燃料消費率(国土交通省審査値)WLTCモード	</ons-col><ons-col width="50%" class="option">	〈13.1〉(13.4)	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_JC08モード	</ons-col><ons-col width="50%" class="option">	〈15.0〉(15.5)	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■車両型式・重量・性能_主要燃費改善対策	</ons-col><ons-col width="50%" class="option">	可変バルブタイミング、電動パワーステアリング、アイドリングストップ装置、オルタネータ回生制御	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_全長 mm	</ons-col><ons-col width="50%" class="option">	4065	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_全幅 mm	</ons-col><ons-col width="50%" class="option">	1665	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_全高 mm	</ons-col><ons-col width="50%" class="option">	1930	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_ホイールベース mm	</ons-col><ons-col width="50%" class="option">	2650	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_トレッド 	</ons-col><ons-col width="50%" class="option">	1460	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_トレッド 	</ons-col><ons-col width="50%" class="option">	1440	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_最低地上高 mm	</ons-col><ons-col width="50%" class="option">	190	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_床面地上高 ※1 mm	</ons-col><ons-col width="50%" class="option">	620	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_荷室内 	</ons-col><ons-col width="50%" class="option">	2,045 [1,255]	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_荷室内 	</ons-col><ons-col width="50%" class="option">	1495	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■寸法_荷室内 	</ons-col><ons-col width="50%" class="option">	1,305[1,300]	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■エンジン_型式	</ons-col><ons-col width="50%" class="option">	2NR-VE	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■エンジン_種類	</ons-col><ons-col width="50%" class="option">	水冷直列4気筒	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■エンジン_使用燃料	</ons-col><ons-col width="50%" class="option">	無鉛レギュラーガソリン	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■エンジン_総排気量 L	</ons-col><ons-col width="50%" class="option">	1.496	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■エンジン_内径×行程 mm	</ons-col><ons-col width="50%" class="option">	72.5×90.6	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■エンジン_最高出力<ネット> kW(PS)/r.p.m.	</ons-col><ons-col width="50%" class="option">	71(97)/6,000	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■エンジン_最大トルク<ネット> N・m(kgf・m)/r.p.m.	</ons-col><ons-col width="50%" class="option">	134(13.7)/4,400	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■エンジン_燃料供給装置	</ons-col><ons-col width="50%" class="option">	EF(I電子制御式燃料噴射装置)	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■エンジン_燃料タンク容量 L	</ons-col><ons-col width="50%" class="option">	43	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■走行装置・タイヤ_サスペンション	</ons-col><ons-col width="50%" class="option">	マクファーソンストラット式コイルスプリング 	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■走行装置・タイヤ_サスペンション	</ons-col><ons-col width="50%" class="option">	トレーリングリンク式コイルスプリング	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■走行装置・タイヤ_ブレーキ 	</ons-col><ons-col width="50%" class="option">	ベンチレーテッドディスク	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■走行装置・タイヤ_ブレーキ 	</ons-col><ons-col width="50%" class="option">	リーディングトレーリング	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■走行装置・タイヤ_タイヤ 	</ons-col><ons-col width="50%" class="option">	165/80R14 97/95N LT 	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■走行装置・タイヤ_タイヤ 	</ons-col><ons-col width="50%" class="option">	165/80R14 97/95N LT	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第1速	</ons-col><ons-col width="50%" class="option">	2.73	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第1速	</ons-col><ons-col width="50%" class="option">	4.059	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第2速	</ons-col><ons-col width="50%" class="option">	1.526	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第2速	</ons-col><ons-col width="50%" class="option">	2.045	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第3速	</ons-col><ons-col width="50%" class="option">	1	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第3速	</ons-col><ons-col width="50%" class="option">	1.376	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第4速	</ons-col><ons-col width="50%" class="option">	0.696	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第4速	</ons-col><ons-col width="50%" class="option">	1	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第5速	</ons-col><ons-col width="50%" class="option">	-	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_第5速	</ons-col><ons-col width="50%" class="option">	0.742	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_後退	</ons-col><ons-col width="50%" class="option">	2.29	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_後退	</ons-col><ons-col width="50%" class="option">	4.128	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_減速比	</ons-col><ons-col width="50%" class="option">	5.125	</ons-col></ons-row><hr>
+<ons-row><ons-col width="50%" class="option">	■変速比_減速比	</ons-col><ons-col width="50%" class="option">	5.125	</ons-col></ons-row><hr>
+
+</div>
+
+
+
+            </div>
+        </ons-page>
+    </ons-template>
+
+
+
+    <div class="overlay"></div>
+    <nav class="nav">
+
+    <!-- 検索条件 -->
+            <ons-page>
+                <ons-toolbar style="background-color:gray">
+                    <div class="center" style="color:white">検索条件</div>
+                    <div class="right"><ons-toolbar-button onclick="document.body.classList.remove('show-nav')" modifier="outline"><font color="white"><ons-icon icon="fa-chevron-left"></ons-icon></font></ons-toolbar-button></div>
+                </ons-toolbar>
+                <ons-fab style="bottom:50px" position="bottom right" onclick="searchCardata()">
+                    <ons-icon icon="fa-play"></ons-icon>
+                </ons-fab>
+
+                <ons-row style="padding:5px">
+                    　
+                </ons-row>
+
+                <!-- 基本 -->
+                <details style="margin-left:10px" open>
+                <summary>
+                <span class="summary_inner">
+                    基本項目<span class="icon"></span>
+                </span>
+                </summary>
+                <div class="summary_content">
+                <ons-row>　</ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        メーカー：
+                    </ons-col>
+                    <ons-col width="320px" class="searchfield">
+                        <ons-select modifier="material">
+                            <option></option>
+                            <option>トヨタ</option>
+                            <option>ニッサン</option>
+                            <option>三菱</option>
+                            <option>マツダ</option>
+                            <option>ホンダ</option>
+                            <option>スバル</option>
+                            <option>ダイハツ</option>
+                            <option>スズキ</option>
+                        </ons-select>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        車名：
+                    </ons-col>
+                    <ons-col width="320px" class="searchfield">
+                        <ons-input modifier="underbar" type="text" placeholder="入力してください" width="40"></ons-input>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        カテゴリ：
+                    </ons-col>
+                    <ons-col width="320px" class="searchfield">
+                        <ons-select modifier="material">
+                            <option></option>
+                            <option>ＳＵＶ</option>
+                            <option>コンパクト</option>
+                            <option>ステーションワゴン​</option>
+                            <option>スポーツ</option>
+                            <option>セダン</option>
+                            <option>ミニバン</option>
+                            <option>軽トラック</option>
+                            <option>軽バン</option>
+                            <option>軽乗用</option>
+                            <option>商用車</option>
+                        </ons-select>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        排気量(cc)：
+                    </ons-col>
+                    <ons-col width="320px" class="searchfield">
+                        <input type="number" size="1" min="600" max="4000" step="100">　~　<input type="number" size="4" min="600" max="4000" step="100">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        乗車定員：
+                    </ons-col>
+                    <ons-col width="320px" class="searchfield">
+                        <ons-select modifier="material">
+                            <option></option>
+                            <option>2名</option>
+                            <option>4名</option>
+                            <option>5名​</option>
+                            <option>6名以上</option>
+                        </ons-select>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        発売年月：
+                    </ons-col>
+                    <ons-col width="320px" class="searchfield">
+                        <input type="month" size="1" min="2000-01" max="2030-12">　~　<input type="month" size="4" min="2000-01" max="2030-12">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>　</ons-row>
+                </div>
+                </details>
+
+                <ons-row style="padding:5px">
+                    　
+                </ons-row>
+
+                <!-- オプション -->
+                <details style="margin-left:10px">
+
+                <summary>
+                <span class="summary_inner">
+                    オプション<span class="icon"></span>
+                </span>
+                </summary>
+
+                <div class="summary_content">
+                <ons-row>　</ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            衝突軽減ブレーキ
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            誤発進抑制装置(前方)
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            誤発進抑制装置(後方)
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            オートハイビーム
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            サイドエアバック&カーテンエアバック
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            コーナーセンサー（前方）
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            コーナーセンサー（後方）
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            車線逸脱防止
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            標識認識
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            追従機能
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            先行車発信告知
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            俯瞰映像（上から見た映像）
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            自動駐車機能
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            電動格納式ドアミラー
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            パワーウインドウ（前席）
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            パワーウインドウ（後席）
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            リヤワイパー
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            キーレスエントリー
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            プライバシーガラス（リヤ）
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            オーディオ
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>
+                    <ons-col class="searchitem">
+                    </ons-col>
+                    <ons-col width="400px" class="searchfield">
+                        <label class="checkbox">
+                            <input type="checkbox" class="checkbox__input">
+                            <div class="checkbox__checkmark"></div>
+                            USBソケット​
+                        </label>
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>　</ons-row>
+                </div>
+                </details>
+                <ons-row style="padding:5px">
+                    　
+                </ons-row>
+
+                <!-- 諸元 -->
+                <details style="margin-left:10px">
+                <summary>
+                <span class="summary_inner">
+                    諸元<span class="icon"></span>
+                </span>
+                </summary>
+
+                <div class="summary_content">
+                <ons-row>　</ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        車両重量(Kg)：
+                    </ons-col>
+                    <ons-col width="300px" class="searchfield">
+                        <input type="number" size="1" min="800" max="3000" step="100">　~　<input type="number" size="4" min="800" max="3000" step="100">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        全長(mm)：
+                    </ons-col>
+                    <ons-col width="300px" class="searchfield">
+                        <input type="number" size="1" min="800" max="3000" step="100">　~　<input type="number" size="4" min="800" max="3000" step="100">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        全幅(mm)：
+                    </ons-col>
+                    <ons-col width="300px" class="searchfield">
+                        <input type="number" size="1" min="800" max="3000" step="100">　~　<input type="number" size="4" min="800" max="3000" step="100">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        全高(mm)：
+                    </ons-col>
+                    <ons-col width="300px" class="searchfield">
+                        <input type="number" size="1" min="800" max="3000" step="100">　~　<input type="number" size="4" min="800" max="3000" step="100">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        室内長(mm)：
+                    </ons-col>
+                    <ons-col width="300px" class="searchfield">
+                        <input type="number" size="1" min="800" max="3000" step="100">　~　<input type="number" size="4" min="800" max="3000" step="100">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        室内幅(mm)：
+                    </ons-col>
+                    <ons-col width="300px" class="searchfield">
+                        <input type="number" size="1" min="800" max="3000" step="100">　~　<input type="number" size="4" min="800" max="3000" step="100">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        室内高(mm)：
+                    </ons-col>
+                    <ons-col width="300px" class="searchfield">
+                        <input type="number" size="1" min="800" max="3000" step="100">　~　<input type="number" size="4" min="800" max="3000" step="100">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        JC08モード燃費：
+                    </ons-col>
+                    <ons-col width="300px" class="searchfield">
+                        <input type="number" size="1" min="10" max="100" step="1">　~　<input type="number" size="4" min="10" max="100" step="1">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row style="padding:5px">
+                    <ons-col class="searchitem">
+                        WLTCモード燃費：
+                    </ons-col>
+                    <ons-col width="300px" class="searchfield">
+                        <input type="number" size="1" min="10" max="100" step="1">　~　<input type="number" size="4" min="10" max="100" step="1">
+                    </ons-col>
+                </ons-row>
+
+                <ons-row>　</ons-row>
+                </div>
+                </details>
+                <ons-row style="padding:5px">
+                    　
+                </ons-row>
+
+            </ons-page>
+
+    </nav>
+
+
+
+    <!-- 処理中ページ -->
+    <ons-modal id="progress.html">
+        <div style="text-align: center; font-size:1.5em;">
+           <p><ons-icon icon="md-spinner" size="30px" spin></ons-icon>　【処理中】 お待ちください.....</p>
+        </div>
+    </ons-modal>
+
+</body>
+</html>
